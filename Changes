@@ -1,0 +1,8 @@
+Revision history for Perl extension Request.
+
+0.01  Sat Feb 24 13:12:05 1996
+	- original version; created by h2xs 1.16
+0.03  Renamed to DataFlow
+0.04  Renamed to Data::Flow
+
+
