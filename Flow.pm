@@ -12,7 +12,7 @@ require AutoLoader;
 # Do not simply export all your public functions/methods/constants.
 @EXPORT = qw(
 );
-$VERSION = '0.05';
+$VERSION = '0.07';
 
 
 # Preloaded methods go here.
@@ -40,6 +40,17 @@ sub get {
   $self->[1]->{$request};
 }
 
+sub aget {
+  my $self = shift;
+  my @request = @_;
+  my @ret;
+  for (@request) {
+    $self->request($_);
+    push @ret, $self->[1]->{$_};
+  }
+  \@ret
+}
+
 sub request {
   my $self = shift;
   my ($recipes, $data) = @$self;
@@ -59,8 +70,14 @@ sub request {
       &{$recipe->{process}}($data, $request);
       die "The recipe for processing the request `$request' did not acquire it" 
 	unless exists $data->{$request};
+    } elsif (exists $recipe->{oo_process}) { # Let it do the work itself.
+      &{$recipe->{oo_process}}($self, $request);
+      die "The recipe for OO-processing the request `$request' did not acquire it"
+       unless exists $data->{$request};
     } elsif (exists $recipe->{output}) { # Keep return value.
       $data->{$request} = &{$recipe->{output}}($data, $request);
+    } elsif (exists $recipe->{oo_output}) { # Keep return value.
+      $data->{$request} = &{$recipe->{oo_output}}($self, $data, $request);
     } elsif (exists $recipe->{filter}) { # Input comes from $data
       my @arr = @{ $recipe->{filter} };
       my $sub = shift @arr;
@@ -131,9 +148,10 @@ be obtained by the usual
   $request = new Data::Flow $recipes;
 
 paradigm. The argument $recipes is a hash reference, which provides
-the rules for request processing. The objects support two methods,
-set() and get(). The first one is used to provide input data for
-processing, the second one to obtain the output.
+the rules for request processing. The objects support three methods,
+set(), get() and aget(). The first one is used to provide input data for
+processing, the second one to obtain the output. The third one to obtain an
+  array reference of output.
 
 The unit of requested information is a I<field>. The method set()
 takes a pair C<field =E<gt> value>, the method get() takes one
@@ -174,13 +192,26 @@ fields are build before any further processing is done. Example:
 =item C<process>
 
 contains the rule to build the field. The value is a reference to a
-subroutine taking 2 arguments: the object $request, and the name of
+subroutine taking 2 arguments: the reference to a hash with all the fields
+which have been set, and the name of
 the required field. It is up to the subroutine to actually fill the
-corresponding field of $data, an error condition is raised if it did
+corresponding field of the hash, an error condition is raised if it did
 not. Example:
 
   process => sub { my $data = shift;
-		   $data->set( time => localtime(time) ) }
+                  $data->{time} = localtime(time) } }
+
+=item C<oo_process>
+
+contains the rule to build the field. The value is a reference to a
+subroutine taking 2 arguments: the object $request, and the name of
+the required field. It is up to the subroutine to actually fill the
+corresponding field of $request, an error condition is raised if it did
+not. Example:
+
+  oo_process => sub { my $data = shift;
+                     $data->set( time => localtime(time) ) }
+
 
 =item C<output>
 
@@ -189,6 +220,14 @@ return value of the subroutine is used as the value of the
 I<field>. Example:
 
   output => sub { localtime(time) }
+
+=item C<oo_output>
+
+the corresponing value has the same meaning as for C<process>, but the
+return value of the method is used as the value of the
+I<field>. Example:
+
+  output => sub { my $self = shift; $self->get('r') . localtime(time) }
 
 
 =item C<filter>

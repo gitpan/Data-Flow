@@ -5,5 +5,7 @@ Revision history for Perl extension Request.
 0.03  Renamed to DataFlow
 0.04  Renamed to Data::Flow
 0.05  Made new() use two arg version of bless to allow subclassing.
-
+0.06  'process' was misdocumented.  Correct, and add 'oo_process' which
+      matches the old docs for 'process'.
+0.07  Add aget() and oo_output method
 
