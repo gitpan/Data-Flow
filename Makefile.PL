@@ -3,5 +3,6 @@ use ExtUtils::MakeMaker;
 # the contents of the Makefile that is written.
 WriteMakefile(
     'NAME'	=> 'Data::Flow',
+    'dist'      => { COMPRESS => gzip, SUFFIX => '.gz'},
     'VERSION_FROM' => 'Flow.pm', # finds $VERSION
 );

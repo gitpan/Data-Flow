@@ -12,16 +12,16 @@ require AutoLoader;
 # Do not simply export all your public functions/methods/constants.
 @EXPORT = qw(
 );
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 
 # Preloaded methods go here.
 
 sub new {
   die "Usage: new Data::Flow \$recipes" unless @_ == 2;
-  shift;
+  my $class = shift;
   my $recipes = shift;
-  $recipes = bless [$recipes, {}];
+  $recipes = bless [$recipes, {}], $class;
   # $recipes->set(@_);
   $recipes;
 }

@@ -4,5 +4,6 @@ Revision history for Perl extension Request.
 	- original version; created by h2xs 1.16
 0.03  Renamed to DataFlow
 0.04  Renamed to Data::Flow
+0.05  Made new() use two arg version of bless to allow subclassing.
 
 
