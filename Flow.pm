@@ -12,7 +12,7 @@ require AutoLoader;
 # Do not simply export all your public functions/methods/constants.
 @EXPORT = qw(
 );
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 
 # Preloaded methods go here.
@@ -77,7 +77,7 @@ sub request {
     } elsif (exists $recipe->{output}) { # Keep return value.
       $data->{$request} = &{$recipe->{output}}($data, $request);
     } elsif (exists $recipe->{oo_output}) { # Keep return value.
-      $data->{$request} = &{$recipe->{oo_output}}($self, $data, $request);
+      $data->{$request} = &{$recipe->{oo_output}}($self, $request);
     } elsif (exists $recipe->{filter}) { # Input comes from $data
       my @arr = @{ $recipe->{filter} };
       my $sub = shift @arr;
@@ -125,8 +125,8 @@ Data::Flow - Perl extension for simple-minded recipe-controlled build of data.
 			     process => 
 			     sub {
 			       my $data = shift; 
-			       $data->{ shift() } = `cat $data->get('path')`
-				 x $data->get('x');
+			       $data->{ shift() } = `cat $data->{'path'}`
+				 x $data->{'x'};
 			     }
 			   },
 	     };

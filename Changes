@@ -8,4 +8,5 @@ Revision history for Perl extension Request.
 0.06  'process' was misdocumented.  Correct, and add 'oo_process' which
       matches the old docs for 'process'.
 0.07  Add aget() and oo_output method
+0.08  oo_output and SYNOPSYS example made correct. 
 
