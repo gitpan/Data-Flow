@@ -2,4 +2,4 @@ Changes
 MANIFEST
 Makefile.PL
 Flow.pm
-test.pl
+t/Data-Flow.t

@@ -12,7 +12,7 @@ require AutoLoader;
 # Do not simply export all your public functions/methods/constants.
 @EXPORT = qw(
 );
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 
 # Preloaded methods go here.
@@ -33,6 +33,13 @@ sub set {
   @{$self->[1]}{keys %data} = values %data;
 }
 
+sub unset {
+  my ($self, $f) = shift;
+  for $f (@_) {
+    delete $self->[1]{$f}
+  }
+}
+
 sub get {
   my $self = shift;
   my $request = shift;
@@ -42,13 +49,13 @@ sub get {
 
 sub aget {
   my $self = shift;
-  my @request = @_;
-  my @ret;
-  for (@request) {
-    $self->request($_);
-    push @ret, $self->[1]->{$_};
-  }
-  \@ret
+  [map { $self->request($_); $self->[1]->{$_} } @_]
+}
+
+sub already_set {
+  my $self = shift;
+  my $request = shift;
+  exists $self->[1]->{$request};
 }
 
 sub request {
@@ -84,6 +91,12 @@ sub request {
       foreach (@arr) { $self->request($_) }
       @arr = map $data->{$_}, @arr;
       $data->{$request} = &$sub( @arr );
+    } elsif (exists $recipe->{self_filter}) { # Input comes from $data
+      my @arr = @{ $recipe->{self_filter} };
+      my $sub = shift @arr;
+      foreach (@arr) { $self->request($_) }
+      @arr = map $data->{$_}, @arr;
+      $data->{$request} = &$sub( $self, @arr );
     } elsif (exists $recipe->{method_filter}) { # Input comes from $data
       my @arr = @{ $recipe->{method_filter} };
       my $method = shift @arr;
@@ -99,7 +112,8 @@ sub request {
       @arr = map $data->{$_}, @arr;
       $data->{$request} = $class->$method( @arr );
     } else {
-      die "Do not know how to satisfy the request `$request'";
+      die "Do not know how to satisfy the request `$request'"
+	unless exists $data->{$request};	# 'prerequisites' could set it
     }
   }
 }
@@ -149,13 +163,14 @@ be obtained by the usual
 
 paradigm. The argument $recipes is a hash reference, which provides
 the rules for request processing. The objects support three methods,
-set(), get() and aget(). The first one is used to provide input data for
-processing, the second one to obtain the output. The third one to obtain an
-  array reference of output.
+set(), get(), aget(), and already_set(). The first one is used to provide input data for
+processing, the second one to obtain the output. The third one to obtain a
+reference to an array with results of repeated get(), and the last one to query
+whether a field is already known.
 
 The unit of requested information is a I<field>. The method set()
-takes a pair C<field =E<gt> value>, the method get() takes one
-argument: the C<field>.
+takes a pair C<field =E<gt> value>, the methods get() and already_set() take one
+argument: the C<field>, and the method aget() takes multiple fields.
 
 Every object is created without any fields filled, but it knows how to
 I<construct> fields basing on other fields or some global into. This
@@ -246,6 +261,17 @@ I<field>. Example:
 Note that the mentioned field will be automatically marked as
 prerequisites.
 
+=item C<self_filter>
+
+is similar to C<filter>, but an extra argument, the object itself, is put in
+front of the list of arguments.  Example:
+
+  self_filter => [ sub { my ($self, $first_half = (shift, shift);
+			 $first_half *= -$self->get('total')*100
+			   if $first_half < 0;	# negative means percentage
+			 $first_half + shift }, 
+	      'first_half', 'second_half' ]
+
 =item C<class_filter>
 
 is similar to C<filter>, but the first argument is the name of the
@@ -271,7 +297,8 @@ interface.
 
 =head1 AUTHOR
 
-Ilya Zakharevich, ilya@math.ohio-state.edu
+Ilya Zakharevich, cpan@ilyaz.org, with multiple additions from
+Terrence Monroe Brannon and Radoslav Nedyalkov.
 
 =head1 SEE ALSO
 
