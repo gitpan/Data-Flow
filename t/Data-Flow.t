@@ -6,9 +6,11 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN {print "1..12\n";}
+BEGIN {print "1..11\n";}
+my $loaded;
 END {print "not ok 1\n" unless $loaded;}
 use Data::Flow;
+use strict;
 $loaded = 1;
 print "ok 1\n";
 
@@ -18,6 +20,7 @@ print "ok 1\n";
 # (correspondingly "not ok 13") depending on the success of chunk 13
 # of the test code):
 
+my ($recipe,%request);
 sub fcontents {
   local $/;
   local *F;
@@ -57,7 +60,7 @@ $recipe = {
 #$data = {};
 
 my $request = new Data::Flow $recipe;
-tie %request, Data::Flow, $recipe;
+tie %request, 'Data::Flow', $recipe;
 
 #request($recipe, $data, 'text');
 
@@ -65,8 +68,12 @@ my $set1 = $request->already_set('path2');
 $request->set('path2', 'FEST');
 my $set2 = $request->already_set('path2');
 
-print $request->get('text') eq `cat MANIFEST` 
-  ? "ok 2\n" : "not ok 2\n";
+my $mytext = `cat MANIFEST`;	# Read differently than tested code (if we can)
+$mytext = `$^X -pwle0 MANIFEST` unless $mytext;
+$mytext = do {local $/; local *IN; open IN, 'MANIFEST' and <IN>} unless $mytext;
+
+
+print $request->get('text') eq $mytext ? "ok 2\n" : "not ok 2\n";
 print $request->get('text2') eq  $request->get('text') 
   ? "ok 3\n" : "not ok 3\n";
 print $request->get('text3') eq  $request->get('text') 
@@ -89,10 +96,6 @@ print $request->get('path3') eq 'FEST./MANI'
 
 print $request->get('text4') eq  ($request{text3} x 2)
   ? "ok 11\n" : "not ok 11\n";
-
-my $a = $request->aget('text4', 'text3');
-print "@$a" eq  ($request{text3} x 2 . " " . $request{text3})
-  ? "ok 12\n" : "not ok 12\n";
 
 package A;
 sub x {shift; shift}
