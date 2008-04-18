@@ -6,11 +6,11 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN {print "1..11\n";}
+use strict;
+BEGIN {print "1..12\n";}
 my $loaded;
 END {print "not ok 1\n" unless $loaded;}
 use Data::Flow;
-use strict;
 $loaded = 1;
 print "ok 1\n";
 
@@ -20,7 +20,6 @@ print "ok 1\n";
 # (correspondingly "not ok 13") depending on the success of chunk 13
 # of the test code):
 
-my ($recipe,%request);
 sub fcontents {
   local $/;
   local *F;
@@ -28,6 +27,8 @@ sub fcontents {
   open F, "< $f" or die "Can't open '$f' for read: $!";
   scalar <F>;
 }
+
+my ($recipe,%request);
 
 $recipe = {
 	   path1 => { default => './MANI'},
@@ -96,6 +97,10 @@ print $request->get('path3') eq 'FEST./MANI'
 
 print $request->get('text4') eq  ($request{text3} x 2)
   ? "ok 11\n" : "not ok 11\n";
+
+my $a = $request->aget('text4', 'text3');
+print "@$a" eq  ($request{text3} x 2 . " " . $request{text3})
+  ? "ok 12\n" : "not ok 12\n";
 
 package A;
 sub x {shift; shift}

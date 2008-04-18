@@ -12,7 +12,7 @@ require AutoLoader;
 # Do not simply export all your public functions/methods/constants.
 @EXPORT = qw(
 );
-$VERSION = '1.00';	# The only change 0.06 --> 1.00 is this line ;-)
+$VERSION = '1.01';	# The only change 0.09 --> 1.01 is this line ;-)
 
 
 # Preloaded methods go here.
@@ -33,11 +33,23 @@ sub set {
   @{$self->[1]}{keys %data} = values %data;
 }
 
+sub unset {
+  my ($self, $f) = shift;
+  for $f (@_) {
+    delete $self->[1]{$f}
+  }
+}
+
 sub get {
   my $self = shift;
   my $request = shift;
   $self->request($request);
   $self->[1]->{$request};
+}
+
+sub aget {
+  my $self = shift;
+  [map { $self->request($_); $self->[1]->{$_} } @_]
 }
 
 sub already_set {
@@ -67,22 +79,24 @@ sub request {
 	unless exists $data->{$request};
     } elsif (exists $recipe->{oo_process}) { # Let it do the work itself.
       &{$recipe->{oo_process}}($self, $request);
-      die "The recipe for OO-processing the request `$request' did not acquire it" 
-	unless exists $data->{$request};
+      die "The recipe for OO-processing the request `$request' did not acquire it"
+       unless exists $data->{$request};
     } elsif (exists $recipe->{output}) { # Keep return value.
       $data->{$request} = &{$recipe->{output}}($data, $request);
-    } elsif (exists $recipe->{self_filter}) { # Input comes from $data
-      my @arr = @{ $recipe->{self_filter} };
-      my $sub = shift @arr;
-      foreach (@arr) { $self->request($_) }
-      @arr = map $data->{$_}, @arr;
-      $data->{$request} = &$sub( $self, @arr );
+    } elsif (exists $recipe->{oo_output}) { # Keep return value.
+      $data->{$request} = &{$recipe->{oo_output}}($self, $request);
     } elsif (exists $recipe->{filter}) { # Input comes from $data
       my @arr = @{ $recipe->{filter} };
       my $sub = shift @arr;
       foreach (@arr) { $self->request($_) }
       @arr = map $data->{$_}, @arr;
       $data->{$request} = &$sub( @arr );
+    } elsif (exists $recipe->{self_filter}) { # Input comes from $data
+      my @arr = @{ $recipe->{self_filter} };
+      my $sub = shift @arr;
+      foreach (@arr) { $self->request($_) }
+      @arr = map $data->{$_}, @arr;
+      $data->{$request} = &$sub( $self, @arr );
     } elsif (exists $recipe->{method_filter}) { # Input comes from $data
       my @arr = @{ $recipe->{method_filter} };
       my $method = shift @arr;
@@ -98,7 +112,8 @@ sub request {
       @arr = map $data->{$_}, @arr;
       $data->{$request} = $class->$method( @arr );
     } else {
-      die "Do not know how to satisfy the request `$request'";
+      die "Do not know how to satisfy the request `$request'"
+	unless exists $data->{$request};	# 'prerequisites' could set it
     }
   }
 }
@@ -124,8 +139,8 @@ Data::Flow - Perl extension for simple-minded recipe-controlled build of data.
 			     process => 
 			     sub {
 			       my $data = shift; 
-			       $data->{ shift() } = `cat $data->get('path')`
-				 x $data->get('x');
+			       $data->{ shift() } = `cat $data->{'path'}`
+				 x $data->{'x'};
 			     }
 			   },
 	     };
@@ -148,13 +163,14 @@ be obtained by the usual
 
 paradigm. The argument $recipes is a hash reference, which provides
 the rules for request processing. The objects support three methods,
-set(), get(), and already_set(). The first one is used to provide input data for
-processing, the second one to obtain the output, the last one whether the data
-is already known.
+set(), get(), aget(), and already_set(). The first one is used to provide input data for
+processing, the second one to obtain the output. The third one to obtain a
+reference to an array with results of repeated get(), and the last one to query
+whether a field is already known.
 
 The unit of requested information is a I<field>. The method set()
 takes a pair C<field =E<gt> value>, the methods get() and already_set() take one
-argument: the C<field>.
+argument: the C<field>, and the method aget() takes multiple fields.
 
 Every object is created without any fields filled, but it knows how to
 I<construct> fields basing on other fields or some global into. This
@@ -190,15 +206,15 @@ fields are build before any further processing is done. Example:
 
 =item C<process>
 
-(deprecated) contains the rule to build the field. The value is a reference to a
+contains the rule to build the field. The value is a reference to a
 subroutine taking 2 arguments: the reference to a hash with all the fields
 which have been set, and the name of
 the required field. It is up to the subroutine to actually fill the
-corresponding field of $data, an error condition is raised if it did
+corresponding field of the hash, an error condition is raised if it did
 not. Example:
 
   process => sub { my $data = shift;
-		   $data->{time} = localtime(time) } }
+                  $data->{time} = localtime(time) } }
 
 =item C<oo_process>
 
@@ -209,7 +225,8 @@ corresponding field of $request, an error condition is raised if it did
 not. Example:
 
   oo_process => sub { my $data = shift;
-		      $data->set( time => localtime(time) ) }
+                     $data->set( time => localtime(time) ) }
+
 
 =item C<output>
 
@@ -218,6 +235,14 @@ return value of the subroutine is used as the value of the
 I<field>. Example:
 
   output => sub { localtime(time) }
+
+=item C<oo_output>
+
+the corresponing value has the same meaning as for C<process>, but the
+return value of the method is used as the value of the
+I<field>. Example:
+
+  output => sub { my $self = shift; $self->get('r') . localtime(time) }
 
 
 =item C<filter>
@@ -272,7 +297,8 @@ interface.
 
 =head1 AUTHOR
 
-Ilya Zakharevich, ilya@math.ohio-state.edu
+Ilya Zakharevich, cpan@ilyaz.org, with multiple additions from
+Terrence Monroe Brannon and Radoslav Nedyalkov.
 
 =head1 SEE ALSO
 
