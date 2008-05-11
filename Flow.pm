@@ -12,7 +12,7 @@ require AutoLoader;
 # Do not simply export all your public functions/methods/constants.
 @EXPORT = qw(
 );
-$VERSION = '1.01';	# The only change 0.09 --> 1.01 is this line ;-)
+$VERSION = '1.02';	# The only change 0.09 --> 1.02 is this line ;-)
 
 
 # Preloaded methods go here.

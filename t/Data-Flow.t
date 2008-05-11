@@ -82,8 +82,7 @@ print $request->get('text3') eq  $request->get('text')
 
 $request{path2} = 'FEST';
 
-print $request{text} eq `cat MANIFEST` 
-  ? "ok 5\n" : "not ok 5\n";
+print $request{text} eq $mytext ? "ok 5\n" : "not ok 5\n";
 print $request->get('text2') eq  $request{text2} 
   ? "ok 6\n" : "not ok 6\n";
 print $request->get('text3') eq  $request{text3} 

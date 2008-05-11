@@ -17,3 +17,4 @@ Revision history for Perl extension Request.
 1.00  Test suite was relying on presense of cat.
       Make test suite strict.
 1.01  v1.00 was erroneously based on obsolete v0.06.
+1.02  Test suite was STILL relying on presense of cat.
